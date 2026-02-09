@@ -37,7 +37,7 @@ header h1 {
 
 /* Main Content */
 main {
-    max-width: 900px;
+    max-width: 960px;
     margin: 0 auto;
     padding: 1.5rem 1rem 3rem;
 }
@@ -45,7 +45,7 @@ main {
 /* Summary Cards */
 .summary-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 1rem;
     margin-bottom: 1.5rem;
 }
@@ -60,7 +60,7 @@ main {
 
 .card-label {
     display: block;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: #64748b;
@@ -69,9 +69,17 @@ main {
 
 .card-value {
     display: block;
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: 700;
     color: #1e40af;
+}
+
+.card-value-hp {
+    color: #ea580c;
+}
+
+.card-value-other {
+    color: #16a34a;
 }
 
 /* Form Sections */
@@ -128,6 +136,12 @@ main {
     outline: none;
     border-color: #3b82f6;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.settings-hint {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: #94a3b8;
 }
 
 /* Buttons */
@@ -198,7 +212,7 @@ main {
 .chart-container {
     position: relative;
     width: 100%;
-    max-height: 350px;
+    max-height: 400px;
 }
 
 .chart-empty {
@@ -236,12 +250,12 @@ main {
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
 thead th {
     text-align: left;
-    padding: 0.65rem 0.75rem;
+    padding: 0.65rem 0.6rem;
     background: #f8fafc;
     border-bottom: 2px solid #e2e8f0;
     font-weight: 600;
@@ -250,7 +264,7 @@ thead th {
 }
 
 tbody td {
-    padding: 0.6rem 0.75rem;
+    padding: 0.6rem 0.6rem;
     border-bottom: 1px solid #f1f5f9;
 }
 
@@ -265,7 +279,17 @@ tbody tr:hover {
     font-size: 0.9rem;
 }
 
-.usage-positive {
+.usage-total {
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.usage-hp {
+    color: #ea580c;
+    font-weight: 600;
+}
+
+.usage-other {
     color: #16a34a;
     font-weight: 600;
 }
@@ -318,6 +342,14 @@ footer {
     }
 
     .card-value {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
+    }
+
+    table {
+        font-size: 0.78rem;
+    }
+
+    thead th, tbody td {
+        padding: 0.5rem 0.4rem;
     }
 }

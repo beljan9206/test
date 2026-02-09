@@ -1,5 +1,6 @@
 // ========================================
 // Electricity Tracker - Application Logic
+// Czechia / Heat Pump split
 // ========================================
 //
 // All data is stored in your browser's localStorage.
@@ -10,8 +11,8 @@
 
   // ---- State & Config ----
 
-  const STORAGE_KEY = "electricity_readings";
-  const SETTINGS_KEY = "electricity_settings";
+  const STORAGE_KEY = "electricity_readings_v2";
+  const SETTINGS_KEY = "electricity_settings_v2";
 
   let readings = loadReadings();
   let settings = loadSettings();
@@ -20,17 +21,20 @@
   // ---- DOM Elements ----
 
   const form = document.getElementById("reading-form");
-  const dateInput = document.getElementById("reading-date");
-  const valueInput = document.getElementById("reading-value");
+  const monthInput = document.getElementById("reading-month");
+  const totalInput = document.getElementById("reading-total");
+  const heatPumpInput = document.getElementById("reading-heatpump");
   const noteInput = document.getElementById("reading-note");
   const rateInput = document.getElementById("rate-input");
-  const currencyInput = document.getElementById("currency-input");
+  const rateHpInput = document.getElementById("rate-hp-input");
   const saveSettingsBtn = document.getElementById("save-settings");
   const exportBtn = document.getElementById("export-btn");
   const readingsBody = document.getElementById("readings-body");
   const tableEmpty = document.getElementById("table-empty");
   const chartEmpty = document.getElementById("chart-empty");
   const monthlyUsageEl = document.getElementById("monthly-usage");
+  const monthlyHpEl = document.getElementById("monthly-hp");
+  const monthlyOtherEl = document.getElementById("monthly-other");
   const monthlyCostEl = document.getElementById("monthly-cost");
   const dailyAvgEl = document.getElementById("daily-avg");
   const totalReadingsEl = document.getElementById("total-readings");
@@ -38,12 +42,12 @@
   // ---- Initialization ----
 
   function init() {
-    // Set default date to today
-    dateInput.value = todayString();
+    // Set default month to current month
+    monthInput.value = currentMonthString();
 
     // Load saved settings into inputs
     rateInput.value = settings.rate;
-    currencyInput.value = settings.currency;
+    rateHpInput.value = settings.rateHp;
 
     // Wire up events
     form.addEventListener("submit", handleAddReading);
@@ -74,9 +78,9 @@
       var data = JSON.parse(localStorage.getItem(SETTINGS_KEY));
       return data && typeof data.rate === "number"
         ? data
-        : { rate: 0.12, currency: "$" };
+        : { rate: 6.0, rateHp: 2.6 };
     } catch (e) {
-      return { rate: 0.12, currency: "$" };
+      return { rate: 6.0, rateHp: 2.6 };
     }
   }
 
@@ -84,10 +88,10 @@
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   }
 
-  // Sort readings by date ascending
+  // Sort readings by month ascending
   function sortedReadings() {
     return readings.slice().sort(function (a, b) {
-      return a.date.localeCompare(b.date);
+      return a.month.localeCompare(b.month);
     });
   }
 
@@ -96,41 +100,53 @@
   function handleAddReading(e) {
     e.preventDefault();
 
-    var date = dateInput.value;
-    var value = parseFloat(valueInput.value);
+    var month = monthInput.value;
+    var totalVal = parseFloat(totalInput.value);
+    var hpVal = parseFloat(heatPumpInput.value);
     var note = noteInput.value.trim();
 
-    if (!date || isNaN(value) || value < 0) {
-      showToast("Please enter a valid date and meter reading.");
+    if (!month || isNaN(totalVal) || totalVal < 0 || isNaN(hpVal) || hpVal < 0) {
+      showToast("Please fill in the month and both meter readings.");
       return;
     }
 
-    // Check for duplicate date
+    if (hpVal > totalVal) {
+      showToast("Heat pump meter cannot be higher than total meter.");
+      return;
+    }
+
+    // Check for duplicate month
     var duplicate = readings.some(function (r) {
-      return r.date === date;
+      return r.month === month;
     });
     if (duplicate) {
-      showToast("A reading for this date already exists.");
+      showToast("A reading for this month already exists.");
       return;
     }
 
-    readings.push({ date: date, value: value, note: note });
+    readings.push({
+      month: month,
+      totalValue: totalVal,
+      heatPumpValue: hpVal,
+      note: note,
+    });
     saveReadings();
     render();
 
     // Reset form
-    valueInput.value = "";
+    totalInput.value = "";
+    heatPumpInput.value = "";
     noteInput.value = "";
-    dateInput.value = todayString();
-    valueInput.focus();
+    monthInput.value = currentMonthString();
+    totalInput.focus();
 
     showToast("Reading added.");
   }
 
-  function handleDeleteReading(date) {
-    if (!confirm("Delete reading for " + date + "?")) return;
+  function handleDeleteReading(month) {
+    if (!confirm("Delete reading for " + formatMonth(month) + "?")) return;
     readings = readings.filter(function (r) {
-      return r.date !== date;
+      return r.month !== month;
     });
     saveReadings();
     render();
@@ -139,15 +155,15 @@
 
   function handleSaveSettings() {
     var rate = parseFloat(rateInput.value);
-    var currency = currencyInput.value.trim() || "$";
+    var rateHp = parseFloat(rateHpInput.value);
 
-    if (isNaN(rate) || rate < 0) {
-      showToast("Please enter a valid rate.");
+    if (isNaN(rate) || rate < 0 || isNaN(rateHp) || rateHp < 0) {
+      showToast("Please enter valid rates.");
       return;
     }
 
     settings.rate = rate;
-    settings.currency = currency;
+    settings.rateHp = rateHp;
     saveSettings();
     render();
     showToast("Settings saved.");
@@ -160,23 +176,52 @@
       return;
     }
 
-    var rows = [["Date", "Meter (kWh)", "Usage (kWh)", "Cost", "Note"]];
+    var rows = [[
+      "Month",
+      "Total Meter (kWh)",
+      "Heat Pump Meter (kWh)",
+      "Total Usage (kWh)",
+      "Heat Pump Usage (kWh)",
+      "Other Usage (kWh)",
+      "HP Cost (Kč)",
+      "Other Cost (Kč)",
+      "Total Cost (Kč)",
+      "Note",
+    ]];
 
     for (var i = 0; i < sorted.length; i++) {
-      var usage = "";
-      var cost = "";
+      var totalUsage = "";
+      var hpUsage = "";
+      var otherUsage = "";
+      var hpCost = "";
+      var otherCost = "";
+      var totalCost = "";
+
       if (i > 0) {
-        var diff = sorted[i].value - sorted[i - 1].value;
-        if (diff >= 0) {
-          usage = diff.toFixed(2);
-          cost = (diff * settings.rate).toFixed(2);
+        var tDiff = sorted[i].totalValue - sorted[i - 1].totalValue;
+        var hDiff = sorted[i].heatPumpValue - sorted[i - 1].heatPumpValue;
+        if (tDiff >= 0 && hDiff >= 0) {
+          var other = tDiff - hDiff;
+          if (other < 0) other = 0;
+          totalUsage = tDiff.toFixed(2);
+          hpUsage = hDiff.toFixed(2);
+          otherUsage = other.toFixed(2);
+          hpCost = (hDiff * settings.rateHp).toFixed(2);
+          otherCost = (other * settings.rate).toFixed(2);
+          totalCost = (hDiff * settings.rateHp + other * settings.rate).toFixed(2);
         }
       }
+
       rows.push([
-        sorted[i].date,
-        sorted[i].value.toFixed(2),
-        usage,
-        cost,
+        sorted[i].month,
+        sorted[i].totalValue.toFixed(2),
+        sorted[i].heatPumpValue.toFixed(2),
+        totalUsage,
+        hpUsage,
+        otherUsage,
+        hpCost,
+        otherCost,
+        totalCost,
         '"' + (sorted[i].note || "") + '"',
       ]);
     }
@@ -217,25 +262,39 @@
     // Show most recent first in table
     for (var i = sorted.length - 1; i >= 0; i--) {
       var r = sorted[i];
-      var usage = "-";
+      var totalUsage = "-";
+      var hpUsage = "-";
+      var otherUsage = "-";
       var cost = "-";
 
       if (i > 0) {
-        var diff = r.value - sorted[i - 1].value;
-        if (diff >= 0) {
-          usage = diff.toFixed(2) + " kWh";
-          cost = settings.currency + (diff * settings.rate).toFixed(2);
+        var tDiff = r.totalValue - sorted[i - 1].totalValue;
+        var hDiff = r.heatPumpValue - sorted[i - 1].heatPumpValue;
+
+        if (tDiff >= 0 && hDiff >= 0) {
+          var other = tDiff - hDiff;
+          if (other < 0) other = 0;
+          totalUsage = tDiff.toFixed(1) + " kWh";
+          hpUsage = hDiff.toFixed(1) + " kWh";
+          otherUsage = other.toFixed(1) + " kWh";
+          var totalCost = hDiff * settings.rateHp + other * settings.rate;
+          cost = formatCurrency(totalCost);
         } else {
-          usage = "N/A";
+          totalUsage = "N/A";
+          hpUsage = "N/A";
+          otherUsage = "N/A";
           cost = "N/A";
         }
       }
 
       var tr = document.createElement("tr");
       tr.innerHTML =
-        "<td>" + formatDate(r.date) + "</td>" +
-        "<td>" + r.value.toFixed(2) + "</td>" +
-        "<td class='usage-positive'>" + usage + "</td>" +
+        "<td>" + formatMonth(r.month) + "</td>" +
+        "<td>" + r.totalValue.toFixed(1) + "</td>" +
+        "<td>" + r.heatPumpValue.toFixed(1) + "</td>" +
+        "<td class='usage-total'>" + totalUsage + "</td>" +
+        "<td class='usage-hp'>" + hpUsage + "</td>" +
+        "<td class='usage-other'>" + otherUsage + "</td>" +
         "<td>" + cost + "</td>" +
         "<td>" + escapeHtml(r.note || "") + "</td>" +
         "<td></td>";
@@ -244,9 +303,9 @@
       var deleteBtn = document.createElement("button");
       deleteBtn.className = "btn-delete";
       deleteBtn.textContent = "Delete";
-      deleteBtn.setAttribute("data-date", r.date);
+      deleteBtn.setAttribute("data-month", r.month);
       deleteBtn.addEventListener("click", function () {
-        handleDeleteReading(this.getAttribute("data-date"));
+        handleDeleteReading(this.getAttribute("data-month"));
       });
       tr.lastChild.appendChild(deleteBtn);
 
@@ -259,51 +318,33 @@
 
     if (sorted.length < 2) {
       monthlyUsageEl.textContent = "0 kWh";
-      monthlyCostEl.textContent = settings.currency + "0.00";
+      monthlyHpEl.textContent = "0 kWh";
+      monthlyOtherEl.textContent = "0 kWh";
+      monthlyCostEl.textContent = "0 Kč";
       dailyAvgEl.textContent = "0 kWh";
       return;
     }
 
-    // Calculate this month's usage
-    var now = new Date();
-    var yearMonth =
-      now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+    // Latest period = difference between last two readings
+    var last = sorted[sorted.length - 1];
+    var prev = sorted[sorted.length - 2];
 
-    var monthReadings = sorted.filter(function (r) {
-      return r.date.substring(0, 7) === yearMonth;
-    });
+    var tDiff = Math.max(0, last.totalValue - prev.totalValue);
+    var hDiff = Math.max(0, last.heatPumpValue - prev.heatPumpValue);
+    var other = Math.max(0, tDiff - hDiff);
 
-    var monthUsage = 0;
-    if (monthReadings.length >= 2) {
-      monthUsage =
-        monthReadings[monthReadings.length - 1].value -
-        monthReadings[0].value;
-    } else if (monthReadings.length === 1) {
-      // Compare with last reading of previous month
-      var prevReadings = sorted.filter(function (r) {
-        return r.date.substring(0, 7) < yearMonth;
-      });
-      if (prevReadings.length > 0) {
-        monthUsage =
-          monthReadings[0].value -
-          prevReadings[prevReadings.length - 1].value;
-      }
-    }
+    monthlyUsageEl.textContent = tDiff.toFixed(1) + " kWh";
+    monthlyHpEl.textContent = hDiff.toFixed(1) + " kWh";
+    monthlyOtherEl.textContent = other.toFixed(1) + " kWh";
 
-    monthUsage = Math.max(0, monthUsage);
-    monthlyUsageEl.textContent = monthUsage.toFixed(1) + " kWh";
-    monthlyCostEl.textContent =
-      settings.currency + (monthUsage * settings.rate).toFixed(2);
+    var totalCost = hDiff * settings.rateHp + other * settings.rate;
+    monthlyCostEl.textContent = formatCurrency(totalCost);
 
-    // Daily average across all data
-    var totalUsage = sorted[sorted.length - 1].value - sorted[0].value;
-    var firstDate = new Date(sorted[0].date);
-    var lastDate = new Date(sorted[sorted.length - 1].date);
-    var daysDiff = Math.max(
-      1,
-      Math.round((lastDate - firstDate) / (1000 * 60 * 60 * 24))
-    );
-    var dailyAvg = Math.max(0, totalUsage / daysDiff);
+    // Daily average across all data (approximate 30 days per month gap)
+    var totalUsage = last.totalValue - sorted[0].totalValue;
+    var months = sorted.length - 1;
+    var approxDays = months * 30;
+    var dailyAvg = approxDays > 0 ? Math.max(0, totalUsage / approxDays) : 0;
     dailyAvgEl.textContent = dailyAvg.toFixed(1) + " kWh";
   }
 
@@ -325,15 +366,21 @@
 
     // Build usage data (difference between consecutive readings)
     var labels = [];
-    var usageData = [];
+    var hpData = [];
+    var otherData = [];
     var costData = [];
 
     for (var i = 1; i < sorted.length; i++) {
-      var diff = sorted[i].value - sorted[i - 1].value;
-      if (diff < 0) diff = 0;
-      labels.push(formatDate(sorted[i].date));
-      usageData.push(parseFloat(diff.toFixed(2)));
-      costData.push(parseFloat((diff * settings.rate).toFixed(2)));
+      var tDiff = sorted[i].totalValue - sorted[i - 1].totalValue;
+      var hDiff = sorted[i].heatPumpValue - sorted[i - 1].heatPumpValue;
+      if (tDiff < 0) tDiff = 0;
+      if (hDiff < 0) hDiff = 0;
+      var other = Math.max(0, tDiff - hDiff);
+
+      labels.push(formatMonth(sorted[i].month));
+      hpData.push(parseFloat(hDiff.toFixed(2)));
+      otherData.push(parseFloat(other.toFixed(2)));
+      costData.push(parseFloat((hDiff * settings.rateHp + other * settings.rate).toFixed(2)));
     }
 
     if (chart) {
@@ -346,23 +393,34 @@
         labels: labels,
         datasets: [
           {
-            label: "Usage (kWh)",
-            data: usageData,
-            backgroundColor: "rgba(59, 130, 246, 0.6)",
-            borderColor: "rgba(59, 130, 246, 1)",
+            label: "Heat Pump (kWh)",
+            data: hpData,
+            backgroundColor: "rgba(234, 88, 12, 0.7)",
+            borderColor: "rgba(234, 88, 12, 1)",
             borderWidth: 1,
-            borderRadius: 4,
+            borderRadius: { topLeft: 0, topRight: 0, bottomLeft: 4, bottomRight: 4 },
+            stack: "usage",
             yAxisID: "y",
           },
           {
-            label: "Cost (" + settings.currency + ")",
+            label: "Other (kWh)",
+            data: otherData,
+            backgroundColor: "rgba(22, 163, 74, 0.6)",
+            borderColor: "rgba(22, 163, 74, 1)",
+            borderWidth: 1,
+            borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 },
+            stack: "usage",
+            yAxisID: "y",
+          },
+          {
+            label: "Cost (Kč)",
             data: costData,
             type: "line",
-            borderColor: "rgba(234, 88, 12, 1)",
-            backgroundColor: "rgba(234, 88, 12, 0.1)",
+            borderColor: "rgba(30, 64, 175, 1)",
+            backgroundColor: "rgba(30, 64, 175, 0.1)",
             borderWidth: 2,
             pointRadius: 4,
-            pointBackgroundColor: "rgba(234, 88, 12, 1)",
+            pointBackgroundColor: "rgba(30, 64, 175, 1)",
             fill: true,
             yAxisID: "y1",
           },
@@ -376,7 +434,11 @@
           intersect: false,
         },
         scales: {
+          x: {
+            stacked: true,
+          },
           y: {
+            stacked: true,
             beginAtZero: true,
             title: {
               display: true,
@@ -388,7 +450,7 @@
             position: "right",
             title: {
               display: true,
-              text: settings.currency,
+              text: "Kč",
             },
             grid: {
               drawOnChartArea: false,
@@ -399,6 +461,20 @@
           legend: {
             position: "bottom",
           },
+          tooltip: {
+            callbacks: {
+              afterBody: function (items) {
+                // Show total kWh in tooltip
+                var totalKwh = 0;
+                items.forEach(function (item) {
+                  if (item.dataset.stack === "usage") {
+                    totalKwh += item.parsed.y;
+                  }
+                });
+                return "Total: " + totalKwh.toFixed(1) + " kWh";
+              },
+            },
+          },
         },
       },
     });
@@ -406,24 +482,27 @@
 
   // ---- Utility Functions ----
 
-  function todayString() {
+  function currentMonthString() {
     var d = new Date();
     return (
       d.getFullYear() +
       "-" +
-      String(d.getMonth() + 1).padStart(2, "0") +
-      "-" +
-      String(d.getDate()).padStart(2, "0")
+      String(d.getMonth() + 1).padStart(2, "0")
     );
   }
 
-  function formatDate(dateStr) {
-    var parts = dateStr.split("-");
+  function formatMonth(monthStr) {
+    var parts = monthStr.split("-");
     var months = [
       "Jan", "Feb", "Mar", "Apr", "May", "Jun",
       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     ];
-    return months[parseInt(parts[1], 10) - 1] + " " + parseInt(parts[2], 10) + ", " + parts[0];
+    return months[parseInt(parts[1], 10) - 1] + " " + parts[0];
+  }
+
+  function formatCurrency(amount) {
+    // Czech convention: number then Kč, use space as thousands separator
+    return Math.round(amount).toLocaleString("cs-CZ") + " Kč";
   }
 
   function escapeHtml(str) {
@@ -433,7 +512,6 @@
   }
 
   function showToast(message) {
-    // Remove existing toast
     var existing = document.querySelector(".toast");
     if (existing) existing.remove();
 
@@ -442,12 +520,10 @@
     toast.textContent = message;
     document.body.appendChild(toast);
 
-    // Trigger show
     requestAnimationFrame(function () {
       toast.classList.add("show");
     });
 
-    // Auto-hide after 2.5 seconds
     setTimeout(function () {
       toast.classList.remove("show");
       setTimeout(function () {
