@@ -1,60 +1,61 @@
 // ========================================
-// Electricity Tracker - Application Logic
-// Czechia / Heat Pump split
+// Sledování spotřeby elektřiny
 // ========================================
 //
-// All data is stored in your browser's localStorage.
-// Nothing is sent to any server.
+// Veškerá data jsou uložena v localStorage prohlížeče.
+// Nic se nikam neodesílá.
 
 (function () {
   "use strict";
 
   // ---- State & Config ----
 
-  const STORAGE_KEY = "electricity_readings_v2";
-  const SETTINGS_KEY = "electricity_settings_v2";
+  var STORAGE_KEY = "electricity_readings_v3";
+  var SETTINGS_KEY = "electricity_settings_v3";
 
-  let readings = loadReadings();
-  let settings = loadSettings();
-  let chart = null;
+  var readings = loadReadings();
+  var settings = loadSettings();
+  var chart = null;
+
+  // Czech month names
+  var MONTHS_CS = [
+    "Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
+    "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"
+  ];
 
   // ---- DOM Elements ----
 
-  const form = document.getElementById("reading-form");
-  const monthInput = document.getElementById("reading-month");
-  const totalInput = document.getElementById("reading-total");
-  const heatPumpInput = document.getElementById("reading-heatpump");
-  const noteInput = document.getElementById("reading-note");
-  const rateInput = document.getElementById("rate-input");
-  const rateHpInput = document.getElementById("rate-hp-input");
-  const saveSettingsBtn = document.getElementById("save-settings");
-  const exportBtn = document.getElementById("export-btn");
-  const readingsBody = document.getElementById("readings-body");
-  const tableEmpty = document.getElementById("table-empty");
-  const chartEmpty = document.getElementById("chart-empty");
-  const monthlyUsageEl = document.getElementById("monthly-usage");
-  const monthlyHpEl = document.getElementById("monthly-hp");
-  const monthlyOtherEl = document.getElementById("monthly-other");
-  const monthlyCostEl = document.getElementById("monthly-cost");
-  const dailyAvgEl = document.getElementById("daily-avg");
-  const totalReadingsEl = document.getElementById("total-readings");
+  var form = document.getElementById("reading-form");
+  var monthInput = document.getElementById("reading-month");
+  var totalInput = document.getElementById("reading-total");
+  var heatPumpInput = document.getElementById("reading-heatpump");
+  var noteInput = document.getElementById("reading-note");
+  var rateInput = document.getElementById("rate-input");
+  var saveSettingsBtn = document.getElementById("save-settings");
+  var exportBtn = document.getElementById("export-btn");
+  var readingsBody = document.getElementById("readings-body");
+  var tableEmpty = document.getElementById("table-empty");
+  var chartEmpty = document.getElementById("chart-empty");
+  var monthlyUsageEl = document.getElementById("monthly-usage");
+  var monthlyUsageSubEl = document.getElementById("monthly-usage-sub");
+  var monthlyHpEl = document.getElementById("monthly-hp");
+  var monthlyHpPctEl = document.getElementById("monthly-hp-pct");
+  var monthlyOtherEl = document.getElementById("monthly-other");
+  var monthlyOtherPctEl = document.getElementById("monthly-other-pct");
+  var monthlyCostEl = document.getElementById("monthly-cost");
+  var dailyAvgEl = document.getElementById("daily-avg");
+  var totalReadingsEl = document.getElementById("total-readings");
 
   // ---- Initialization ----
 
   function init() {
-    // Set default month to current month
     monthInput.value = currentMonthString();
-
-    // Load saved settings into inputs
     rateInput.value = settings.rate;
-    rateHpInput.value = settings.rateHp;
 
-    // Wire up events
     form.addEventListener("submit", handleAddReading);
     saveSettingsBtn.addEventListener("click", handleSaveSettings);
     exportBtn.addEventListener("click", handleExport);
 
-    // Render everything
     render();
   }
 
@@ -78,9 +79,9 @@
       var data = JSON.parse(localStorage.getItem(SETTINGS_KEY));
       return data && typeof data.rate === "number"
         ? data
-        : { rate: 6.0, rateHp: 2.6 };
+        : { rate: 6.0 };
     } catch (e) {
-      return { rate: 6.0, rateHp: 2.6 };
+      return { rate: 6.0 };
     }
   }
 
@@ -88,7 +89,6 @@
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   }
 
-  // Sort readings by month ascending
   function sortedReadings() {
     return readings.slice().sort(function (a, b) {
       return a.month.localeCompare(b.month);
@@ -106,21 +106,20 @@
     var note = noteInput.value.trim();
 
     if (!month || isNaN(totalVal) || totalVal < 0 || isNaN(hpVal) || hpVal < 0) {
-      showToast("Please fill in the month and both meter readings.");
+      showToast("Vyplňte měsíc a oba odečty elektroměru.");
       return;
     }
 
     if (hpVal > totalVal) {
-      showToast("Heat pump meter cannot be higher than total meter.");
+      showToast("Odečet TČ nemůže být vyšší než celkový elektroměr.");
       return;
     }
 
-    // Check for duplicate month
     var duplicate = readings.some(function (r) {
       return r.month === month;
     });
     if (duplicate) {
-      showToast("A reading for this month already exists.");
+      showToast("Odečet pro tento měsíc již existuje.");
       return;
     }
 
@@ -133,82 +132,72 @@
     saveReadings();
     render();
 
-    // Reset form
     totalInput.value = "";
     heatPumpInput.value = "";
     noteInput.value = "";
     monthInput.value = currentMonthString();
     totalInput.focus();
 
-    showToast("Reading added.");
+    showToast("Odečet přidán.");
   }
 
   function handleDeleteReading(month) {
-    if (!confirm("Delete reading for " + formatMonth(month) + "?")) return;
+    if (!confirm("Smazat odečet za " + formatMonth(month) + "?")) return;
     readings = readings.filter(function (r) {
       return r.month !== month;
     });
     saveReadings();
     render();
-    showToast("Reading deleted.");
+    showToast("Odečet smazán.");
   }
 
   function handleSaveSettings() {
     var rate = parseFloat(rateInput.value);
-    var rateHp = parseFloat(rateHpInput.value);
 
-    if (isNaN(rate) || rate < 0 || isNaN(rateHp) || rateHp < 0) {
-      showToast("Please enter valid rates.");
+    if (isNaN(rate) || rate < 0) {
+      showToast("Zadejte platnou cenu za kWh.");
       return;
     }
 
     settings.rate = rate;
-    settings.rateHp = rateHp;
     saveSettings();
     render();
-    showToast("Settings saved.");
+    showToast("Nastavení uloženo.");
   }
 
   function handleExport() {
     var sorted = sortedReadings();
     if (sorted.length === 0) {
-      showToast("No data to export.");
+      showToast("Žádná data k exportu.");
       return;
     }
 
     var rows = [[
-      "Month",
-      "Total Meter (kWh)",
-      "Heat Pump Meter (kWh)",
-      "Total Usage (kWh)",
-      "Heat Pump Usage (kWh)",
-      "Other Usage (kWh)",
-      "HP Cost (Kč)",
-      "Other Cost (Kč)",
-      "Total Cost (Kč)",
-      "Note",
+      "Měsíc",
+      "Celkový elektroměr (kWh)",
+      "Elektroměr TČ (kWh)",
+      "Spotřeba celkem (kWh)",
+      "Tepelné čerpadlo (kWh)",
+      "Ostatní (kWh)",
+      "Náklady (Kč)",
+      "Poznámka",
     ]];
 
     for (var i = 0; i < sorted.length; i++) {
       var totalUsage = "";
       var hpUsage = "";
       var otherUsage = "";
-      var hpCost = "";
-      var otherCost = "";
-      var totalCost = "";
+      var cost = "";
 
       if (i > 0) {
         var tDiff = sorted[i].totalValue - sorted[i - 1].totalValue;
         var hDiff = sorted[i].heatPumpValue - sorted[i - 1].heatPumpValue;
         if (tDiff >= 0 && hDiff >= 0) {
-          var other = tDiff - hDiff;
-          if (other < 0) other = 0;
+          var other = Math.max(0, tDiff - hDiff);
           totalUsage = tDiff.toFixed(2);
           hpUsage = hDiff.toFixed(2);
           otherUsage = other.toFixed(2);
-          hpCost = (hDiff * settings.rateHp).toFixed(2);
-          otherCost = (other * settings.rate).toFixed(2);
-          totalCost = (hDiff * settings.rateHp + other * settings.rate).toFixed(2);
+          cost = (tDiff * settings.rate).toFixed(2);
         }
       }
 
@@ -219,29 +208,27 @@
         totalUsage,
         hpUsage,
         otherUsage,
-        hpCost,
-        otherCost,
-        totalCost,
+        cost,
         '"' + (sorted[i].note || "") + '"',
       ]);
     }
 
-    var csv = rows.map(function (r) { return r.join(","); }).join("\n");
-    var blob = new Blob([csv], { type: "text/csv" });
+    var csv = rows.map(function (r) { return r.join(";"); }).join("\n");
+    var bom = "\uFEFF";
+    var blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8" });
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url;
-    a.download = "electricity-readings.csv";
+    a.download = "spotreba-elektriny.csv";
     a.click();
     URL.revokeObjectURL(url);
-    showToast("CSV exported.");
+    showToast("CSV exportováno.");
   }
 
   // ---- Rendering ----
 
   function render() {
     var sorted = sortedReadings();
-
     renderTable(sorted);
     renderSummary(sorted);
     renderChart(sorted);
@@ -259,7 +246,6 @@
     tableEmpty.style.display = "none";
     document.getElementById("readings-table").style.display = "table";
 
-    // Show most recent first in table
     for (var i = sorted.length - 1; i >= 0; i--) {
       var r = sorted[i];
       var totalUsage = "-";
@@ -272,13 +258,11 @@
         var hDiff = r.heatPumpValue - sorted[i - 1].heatPumpValue;
 
         if (tDiff >= 0 && hDiff >= 0) {
-          var other = tDiff - hDiff;
-          if (other < 0) other = 0;
+          var other = Math.max(0, tDiff - hDiff);
           totalUsage = tDiff.toFixed(1) + " kWh";
           hpUsage = hDiff.toFixed(1) + " kWh";
           otherUsage = other.toFixed(1) + " kWh";
-          var totalCost = hDiff * settings.rateHp + other * settings.rate;
-          cost = formatCurrency(totalCost);
+          cost = formatCurrency(tDiff * settings.rate);
         } else {
           totalUsage = "N/A";
           hpUsage = "N/A";
@@ -299,10 +283,9 @@
         "<td>" + escapeHtml(r.note || "") + "</td>" +
         "<td></td>";
 
-      // Add delete button
       var deleteBtn = document.createElement("button");
       deleteBtn.className = "btn-delete";
-      deleteBtn.textContent = "Delete";
+      deleteBtn.textContent = "Smazat";
       deleteBtn.setAttribute("data-month", r.month);
       deleteBtn.addEventListener("click", function () {
         handleDeleteReading(this.getAttribute("data-month"));
@@ -318,14 +301,16 @@
 
     if (sorted.length < 2) {
       monthlyUsageEl.textContent = "0 kWh";
+      monthlyUsageSubEl.textContent = "poslední období";
       monthlyHpEl.textContent = "0 kWh";
+      monthlyHpPctEl.textContent = "0 % z celku";
       monthlyOtherEl.textContent = "0 kWh";
+      monthlyOtherPctEl.textContent = "0 % z celku";
       monthlyCostEl.textContent = "0 Kč";
       dailyAvgEl.textContent = "0 kWh";
       return;
     }
 
-    // Latest period = difference between last two readings
     var last = sorted[sorted.length - 1];
     var prev = sorted[sorted.length - 2];
 
@@ -334,16 +319,26 @@
     var other = Math.max(0, tDiff - hDiff);
 
     monthlyUsageEl.textContent = tDiff.toFixed(1) + " kWh";
+    monthlyUsageSubEl.textContent = formatMonth(prev.month) + " → " + formatMonth(last.month);
+
     monthlyHpEl.textContent = hDiff.toFixed(1) + " kWh";
     monthlyOtherEl.textContent = other.toFixed(1) + " kWh";
 
-    var totalCost = hDiff * settings.rateHp + other * settings.rate;
-    monthlyCostEl.textContent = formatCurrency(totalCost);
+    if (tDiff > 0) {
+      monthlyHpPctEl.textContent = Math.round((hDiff / tDiff) * 100) + " % z celku";
+      monthlyOtherPctEl.textContent = Math.round((other / tDiff) * 100) + " % z celku";
+    } else {
+      monthlyHpPctEl.textContent = "0 % z celku";
+      monthlyOtherPctEl.textContent = "0 % z celku";
+    }
 
-    // Daily average across all data (approximate 30 days per month gap)
+    // Cost = total consumption × rate
+    monthlyCostEl.textContent = formatCurrency(tDiff * settings.rate);
+
+    // Daily average
     var totalUsage = last.totalValue - sorted[0].totalValue;
-    var months = sorted.length - 1;
-    var approxDays = months * 30;
+    var numMonths = sorted.length - 1;
+    var approxDays = numMonths * 30;
     var dailyAvg = approxDays > 0 ? Math.max(0, totalUsage / approxDays) : 0;
     dailyAvgEl.textContent = dailyAvg.toFixed(1) + " kWh";
   }
@@ -364,7 +359,6 @@
     chartEmpty.style.display = "none";
     canvas.style.display = "block";
 
-    // Build usage data (difference between consecutive readings)
     var labels = [];
     var hpData = [];
     var otherData = [];
@@ -378,9 +372,9 @@
       var other = Math.max(0, tDiff - hDiff);
 
       labels.push(formatMonth(sorted[i].month));
-      hpData.push(parseFloat(hDiff.toFixed(2)));
-      otherData.push(parseFloat(other.toFixed(2)));
-      costData.push(parseFloat((hDiff * settings.rateHp + other * settings.rate).toFixed(2)));
+      hpData.push(parseFloat(hDiff.toFixed(1)));
+      otherData.push(parseFloat(other.toFixed(1)));
+      costData.push(parseFloat((tDiff * settings.rate).toFixed(0)));
     }
 
     if (chart) {
@@ -393,36 +387,43 @@
         labels: labels,
         datasets: [
           {
-            label: "Heat Pump (kWh)",
+            label: "Tepelné čerpadlo (kWh)",
             data: hpData,
-            backgroundColor: "rgba(234, 88, 12, 0.7)",
+            backgroundColor: "rgba(234, 88, 12, 0.75)",
             borderColor: "rgba(234, 88, 12, 1)",
             borderWidth: 1,
-            borderRadius: { topLeft: 0, topRight: 0, bottomLeft: 4, bottomRight: 4 },
+            borderRadius: { topLeft: 0, topRight: 0, bottomLeft: 6, bottomRight: 6 },
             stack: "usage",
             yAxisID: "y",
+            order: 2,
           },
           {
-            label: "Other (kWh)",
+            label: "Ostatní spotřeba (kWh)",
             data: otherData,
-            backgroundColor: "rgba(22, 163, 74, 0.6)",
+            backgroundColor: "rgba(22, 163, 74, 0.65)",
             borderColor: "rgba(22, 163, 74, 1)",
             borderWidth: 1,
-            borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 },
+            borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
             stack: "usage",
             yAxisID: "y",
+            order: 2,
           },
           {
-            label: "Cost (Kč)",
+            label: "Náklady (Kč)",
             data: costData,
             type: "line",
-            borderColor: "rgba(30, 64, 175, 1)",
-            backgroundColor: "rgba(30, 64, 175, 0.1)",
-            borderWidth: 2,
-            pointRadius: 4,
-            pointBackgroundColor: "rgba(30, 64, 175, 1)",
+            borderColor: "rgba(124, 58, 237, 1)",
+            backgroundColor: "rgba(124, 58, 237, 0.08)",
+            borderWidth: 2.5,
+            pointRadius: 5,
+            pointBackgroundColor: "#fff",
+            pointBorderColor: "rgba(124, 58, 237, 1)",
+            pointBorderWidth: 2,
+            pointHoverRadius: 7,
             fill: true,
+            tension: 0.3,
             yAxisID: "y1",
+            order: 1,
           },
         ],
       },
@@ -436,6 +437,11 @@
         scales: {
           x: {
             stacked: true,
+            grid: { display: false },
+            ticks: {
+              font: { size: 11, weight: "600" },
+              color: "#64748b",
+            },
           },
           y: {
             stacked: true,
@@ -443,6 +449,13 @@
             title: {
               display: true,
               text: "kWh",
+              font: { size: 12, weight: "600" },
+              color: "#64748b",
+            },
+            grid: { color: "rgba(0,0,0,0.04)" },
+            ticks: {
+              font: { size: 11 },
+              color: "#94a3b8",
             },
           },
           y1: {
@@ -451,27 +464,42 @@
             title: {
               display: true,
               text: "Kč",
+              font: { size: 12, weight: "600" },
+              color: "#64748b",
             },
-            grid: {
-              drawOnChartArea: false,
+            grid: { drawOnChartArea: false },
+            ticks: {
+              font: { size: 11 },
+              color: "#94a3b8",
             },
           },
         },
         plugins: {
           legend: {
             position: "bottom",
+            labels: {
+              padding: 20,
+              usePointStyle: true,
+              pointStyleWidth: 12,
+              font: { size: 12, weight: "500" },
+              color: "#334155",
+            },
           },
           tooltip: {
+            backgroundColor: "rgba(15, 23, 42, 0.92)",
+            titleFont: { size: 13, weight: "700" },
+            bodyFont: { size: 12 },
+            padding: 12,
+            cornerRadius: 8,
             callbacks: {
               afterBody: function (items) {
-                // Show total kWh in tooltip
                 var totalKwh = 0;
                 items.forEach(function (item) {
                   if (item.dataset.stack === "usage") {
                     totalKwh += item.parsed.y;
                   }
                 });
-                return "Total: " + totalKwh.toFixed(1) + " kWh";
+                return "Celkem: " + totalKwh.toFixed(1) + " kWh";
               },
             },
           },
@@ -484,24 +512,16 @@
 
   function currentMonthString() {
     var d = new Date();
-    return (
-      d.getFullYear() +
-      "-" +
-      String(d.getMonth() + 1).padStart(2, "0")
-    );
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
   }
 
   function formatMonth(monthStr) {
     var parts = monthStr.split("-");
-    var months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ];
-    return months[parseInt(parts[1], 10) - 1] + " " + parts[0];
+    var idx = parseInt(parts[1], 10) - 1;
+    return MONTHS_CS[idx] + " " + parts[0];
   }
 
   function formatCurrency(amount) {
-    // Czech convention: number then Kč, use space as thousands separator
     return Math.round(amount).toLocaleString("cs-CZ") + " Kč";
   }
 
@@ -526,9 +546,7 @@
 
     setTimeout(function () {
       toast.classList.remove("show");
-      setTimeout(function () {
-        toast.remove();
-      }, 300);
+      setTimeout(function () { toast.remove(); }, 300);
     }, 2500);
   }
 

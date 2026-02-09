@@ -1,73 +1,73 @@
-# Electricity Tracker (Czechia)
+# Sledování spotřeby elektřiny
 
-A simple web app to track your home electricity consumption with separate tracking for your heat pump. Costs are calculated in Czech crowns (Kč). Runs entirely in your browser — no accounts, no servers, no installation required.
+Jednoduchá webová aplikace pro sledování spotřeby elektřiny v domácnosti s rozlišením spotřeby tepelného čerpadla. Běží celá v prohlížeči -- žádné účty, servery ani instalace.
 
-## How to Use
+## Jak používat
 
-### Step 1: Open the App
+### Krok 1: Otevřete aplikaci
 
-Open the `index.html` file in any web browser (Chrome, Firefox, Safari, Edge):
+Otevřete soubor `index.html` v libovolném webovém prohlížeči (Chrome, Firefox, Safari, Edge):
 
-- **Windows**: Double-click `index.html`, or right-click > Open with > your browser
-- **Mac**: Double-click `index.html`, or right-click > Open With > your browser
-- **Linux**: Double-click `index.html` or run `xdg-open index.html` in a terminal
+- **Windows**: Dvakrát klikněte na `index.html`, nebo pravým tlačítkem > Otevřít v programu > váš prohlížeč
+- **Mac**: Dvakrát klikněte na `index.html`, nebo pravým tlačítkem > Otevřít v aplikaci > váš prohlížeč
+- **Linux**: Dvakrát klikněte na `index.html` nebo spusťte `xdg-open index.html` v terminálu
 
-### Step 2: Set Your Electricity Rates
+### Krok 2: Nastavte cenu elektřiny
 
-1. Scroll to the **Settings** section
-2. Enter your **Electricity Rate** — the standard per-kWh price from your bill (default: 6.00 Kč/kWh)
-3. Enter your **Heat Pump Rate** — if your heat pump runs on a cheaper tariff like D57d (default: 2.60 Kč/kWh)
-4. Click **Save Settings**
+1. Přejděte do sekce **Nastavení**
+2. Zadejte **cenu za kWh** z vašeho vyúčtování (výchozí: 6,00 Kč/kWh)
+3. Klikněte na **Uložit nastavení**
 
-**Where to find your rates**: Look at your electricity bill from your distributor (e.g. CEZ, E.ON, PRE). The rate per kWh is listed under your tariff.
+Cenu najdete na vyúčtování od vašeho dodavatele (ČEZ, E.ON, PRE apod.).
 
-### Step 3: Add Monthly Readings
+### Krok 3: Zadávejte měsíční odečty
 
-Your electricity meter shows cumulative numbers. You likely have two meters (or one meter with two registers):
+Vaše elektroměry ukazují kumulativní hodnoty (celkové kWh od instalace). Potřebujete dva odečty:
 
-1. **Total Meter** — overall household electricity consumption
-2. **Heat Pump Meter** — electricity consumed by the heat pump only
+1. **Celkový elektroměr** -- celková spotřeba domácnosti (zahrnuje vše včetně tepelného čerpadla)
+2. **Elektroměr TČ** -- spotřeba pouze tepelného čerpadla (je součástí celkového)
 
-Each month (or whenever you get a bill):
+Každý měsíc:
 
-1. Select the **Month** in the form
-2. Enter the **Total Meter** reading (e.g. `12345`)
-3. Enter the **Heat Pump Meter** reading (e.g. `5678`)
-4. Optionally add a **Note** (e.g. "January bill")
-5. Click **Add Reading**
+1. Vyberte **měsíc**
+2. Zadejte **celkový elektroměr** (např. `12345`)
+3. Zadejte **elektroměr TČ** (např. `5678`)
+4. Volitelně přidejte **poznámku**
+5. Klikněte na **Přidat odečet**
 
-The app automatically calculates:
-- **Heat pump usage** = difference between heat pump meter readings
-- **Other usage** = total usage minus heat pump usage
-- **Cost** = heat pump kWh × HP rate + other kWh × standard rate
+Aplikace automaticky vypočítá:
+- **Celková spotřeba** = rozdíl celkových odečtů
+- **Spotřeba TČ** = rozdíl odečtů tepelného čerpadla (je součástí celkové)
+- **Ostatní spotřeba** = celková - TČ
+- **Náklady** = celková spotřeba × cena za kWh
 
-### Step 4: View Your Data
+### Krok 4: Sledujte data
 
-Once you have **2 or more readings**, the app will automatically show:
+Po zadání **2 a více odečtů** se automaticky zobrazí:
 
-- **Summary cards** — latest month's total, heat pump, other usage, cost, and daily average
-- **Stacked bar chart** — orange bars for heat pump, green bars for other usage, with a cost line
-- **Detailed table** — every reading with calculated usage and cost breakdowns
+- **Přehledové karty** -- celková spotřeba, TČ, ostatní (s procentem z celku), náklady, denní průměr
+- **Skládaný sloupcový graf** -- oranžově TČ, zeleně ostatní spotřeba, fialová čára nákladů
+- **Tabulka** -- všechny odečty s rozpočtem spotřeby a nákladů
 
-### Step 5: Export Your Data
+### Krok 5: Export dat
 
-Click **Export CSV** to download all readings as a spreadsheet. Open it in Excel, Google Sheets, or LibreOffice Calc. The export includes separate columns for heat pump and other usage/costs.
+Klikněte na **Exportovat CSV** pro stažení dat ve formátu CSV (středníkový oddělovač, kódování UTF-8). Soubor otevřete v Excelu, Google Sheets nebo LibreOffice.
 
-## Where Is My Data Stored?
+## Kde jsou data uložena?
 
-All data is stored in your browser's **localStorage** — it stays on your computer and is never sent anywhere. If you clear your browser data, the readings will be deleted, so use **Export CSV** to back up periodically.
+Veškerá data jsou uložena v **localStorage** vašeho prohlížeče -- zůstávají na vašem počítači a nikam se neodesílají. Pokud smažete data prohlížeče, odečty se ztratí. Pravidelně používejte **Exportovat CSV** pro zálohu.
 
-## Files Overview
+## Soubory
 
-| File         | Purpose                                      |
-| ------------ | -------------------------------------------- |
-| `index.html` | The main page — open this in your browser    |
-| `style.css`  | Controls how the app looks (colors, layout)  |
-| `app.js`     | Contains all the logic (calculations, chart) |
+| Soubor       | Účel                                                |
+| ------------ | --------------------------------------------------- |
+| `index.html` | Hlavní stránka -- otevřete v prohlížeči             |
+| `style.css`  | Vzhled aplikace (barvy, rozložení)                  |
+| `app.js`     | Veškerá logika (výpočty, graf, ukládání)            |
 
-## Troubleshooting
+## Řešení problémů
 
-- **Chart not showing?** You need at least 2 monthly readings.
-- **Usage shows "N/A"?** A meter reading is lower than the previous one — double-check your numbers.
-- **Heat pump meter higher than total?** The total meter should always be the larger number (it includes the heat pump).
-- **Data disappeared?** You may have cleared your browser data. Use Export CSV regularly to back up.
+- **Graf se nezobrazuje?** Potřebujete alespoň 2 měsíční odečty.
+- **Spotřeba ukazuje "N/A"?** Odečet je nižší než předchozí -- zkontrolujte čísla.
+- **Odečet TČ vyšší než celkový?** Celkový elektroměr musí být vždy vyšší (zahrnuje i TČ).
+- **Data zmizela?** Pravděpodobně jste smazali data prohlížeče. Používejte CSV export pro zálohu.
