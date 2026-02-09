@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sledování spotřeby elektřiny</title>
+    <title>Rozúčtování elektřiny – dva domy</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,8 +14,8 @@
     <header>
         <div class="header-inner">
             <div class="header-icon">&#9889;</div>
-            <h1>Sledování spotřeby elektřiny</h1>
-            <p class="subtitle">Přehled celkové spotřeby a tepelného čerpadla</p>
+            <h1>Rozúčtování elektřiny</h1>
+            <p class="subtitle">Dva domy, jedna přípojka, FVE &amp; tepelné čerpadlo</p>
         </div>
     </header>
 
@@ -24,47 +24,47 @@
         <!-- Summary Cards -->
         <section class="summary-cards">
             <div class="card card-accent-blue">
-                <div class="card-icon">&#9889;</div>
-                <span class="card-label">Celková spotřeba</span>
-                <span class="card-value" id="monthly-usage">0 kWh</span>
-                <span class="card-sub" id="monthly-usage-sub">poslední období</span>
+                <div class="card-icon">&#x26A1;</div>
+                <span class="card-label">Odběr ze sítě</span>
+                <span class="card-value" id="sum-grid">0 kWh</span>
+                <span class="card-sub" id="sum-grid-cost">0 Kč</span>
             </div>
-            <div class="card card-accent-orange">
-                <div class="card-icon">&#x1F525;</div>
-                <span class="card-label">Tepelné čerpadlo</span>
-                <span class="card-value" id="monthly-hp">0 kWh</span>
-                <span class="card-sub" id="monthly-hp-pct">0 % z celku</span>
+            <div class="card card-accent-amber">
+                <div class="card-icon">&#x2600;&#xFE0F;</div>
+                <span class="card-label">Výroba FVE</span>
+                <span class="card-value" id="sum-fve">0 kWh</span>
+                <span class="card-sub" id="sum-fve-pct">0 % spotřeby</span>
             </div>
             <div class="card card-accent-green">
                 <div class="card-icon">&#x1F3E0;</div>
-                <span class="card-label">Ostatní spotřeba</span>
-                <span class="card-value" id="monthly-other">0 kWh</span>
-                <span class="card-sub" id="monthly-other-pct">0 % z celku</span>
+                <span class="card-label">Dům 1</span>
+                <span class="card-value" id="sum-h1">0 kWh</span>
+                <span class="card-sub" id="sum-h1-cost">náklady: 0 Kč</span>
             </div>
-            <div class="card card-accent-purple">
-                <div class="card-icon">&#x1F4B0;</div>
-                <span class="card-label">Náklady</span>
-                <span class="card-value" id="monthly-cost">0 Kč</span>
-                <span class="card-sub">celková spotřeba &times; cena</span>
+            <div class="card card-accent-orange">
+                <div class="card-icon">&#x1F3E1;</div>
+                <span class="card-label">Dům 2</span>
+                <span class="card-value" id="sum-h2">0 kWh</span>
+                <span class="card-sub" id="sum-h2-cost">náklady: 0 Kč</span>
+            </div>
+            <div class="card card-accent-red">
+                <div class="card-icon">&#x1F525;</div>
+                <span class="card-label">z toho TČ</span>
+                <span class="card-value" id="sum-hp">0 kWh</span>
+                <span class="card-sub" id="sum-hp-pct">0 % Domu 2</span>
             </div>
             <div class="card card-accent-teal">
-                <div class="card-icon">&#x1F4C5;</div>
-                <span class="card-label">Denní průměr</span>
-                <span class="card-value" id="daily-avg">0 kWh</span>
-                <span class="card-sub">za celé sledované období</span>
-            </div>
-            <div class="card card-accent-slate">
-                <div class="card-icon">&#x1F4CB;</div>
-                <span class="card-label">Počet odečtů</span>
-                <span class="card-value" id="total-readings">0</span>
-                <span class="card-sub">zadaných měsíců</span>
+                <div class="card-icon">&#x1F4B6;</div>
+                <span class="card-label">Přetoky do sítě</span>
+                <span class="card-value" id="sum-export">0 kWh</span>
+                <span class="card-sub">dodávka zpět</span>
             </div>
         </section>
 
         <!-- Add Reading Form -->
         <section class="panel">
             <div class="panel-header">
-                <h2>&#x1F4DD; Nový odečet</h2>
+                <h2>&#x1F4DD; Nový měsíční odečet</h2>
             </div>
             <form id="reading-form">
                 <div class="form-row">
@@ -87,22 +87,50 @@
                     </div>
                     <div class="form-group form-group-year">
                         <label for="reading-year-select">Rok</label>
-                        <select id="reading-year-select" required>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="reading-total">Celkový elektroměr (kWh)</label>
-                        <input type="number" id="reading-total" placeholder="např. 12345" step="0.01" min="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="reading-heatpump">Elektroměr TČ (kWh)</label>
-                        <input type="number" id="reading-heatpump" placeholder="např. 5678" step="0.01" min="0" required>
+                        <select id="reading-year-select" required></select>
                     </div>
                 </div>
+
+                <fieldset class="fieldset">
+                    <legend>Síť &amp; FVE</legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="in-grid">Odběr ze sítě (kWh)</label>
+                            <input type="number" id="in-grid" placeholder="0" step="0.1" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="in-export">Dodávka do sítě (kWh)</label>
+                            <input type="number" id="in-export" placeholder="0" step="0.1" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="in-fve">Výroba FVE (kWh)</label>
+                            <input type="number" id="in-fve" placeholder="0" step="0.1" min="0" required>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="fieldset">
+                    <legend>Spotřeba domů</legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="in-h1">Dům 1 (kWh)</label>
+                            <input type="number" id="in-h1" placeholder="0" step="0.1" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="in-h2">Dům 2 (kWh)</label>
+                            <input type="number" id="in-h2" placeholder="0" step="0.1" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="in-hp">z toho TČ (kWh)</label>
+                            <input type="number" id="in-hp" placeholder="0" step="0.1" min="0" required>
+                        </div>
+                    </div>
+                </fieldset>
+
                 <div class="form-row form-row-second">
                     <div class="form-group">
-                        <label for="reading-note">Poznámka (nepovinné)</label>
-                        <input type="text" id="reading-note" placeholder="např. lednový odečet">
+                        <label for="in-note">Poznámka (nepovinné)</label>
+                        <input type="text" id="in-note" placeholder="např. lednový odečet">
                     </div>
                 </div>
                 <button type="submit" class="btn-primary">Přidat odečet</button>
@@ -120,20 +148,20 @@
                     <input type="number" id="rate-input" step="0.01" min="0" value="6.00">
                 </div>
                 <div class="form-group form-group-btn">
-                    <button type="button" id="save-settings" class="btn-secondary">Uložit nastavení</button>
+                    <button type="button" id="save-settings" class="btn-secondary">Uložit</button>
                 </div>
             </div>
-            <p class="settings-hint">Cenu za kWh najdete na vyúčtování od vašeho dodavatele (ČEZ, E.ON, PRE apod.). Náklady = celková spotřeba &times; cena za kWh.</p>
+            <p class="settings-hint">Náklady každého domu = (spotřeba domu / celková spotřeba) &times; odběr ze sítě &times; cena za kWh. Elektřina z FVE je tak automaticky rozdělena poměrně.</p>
         </section>
 
         <!-- Chart -->
         <section class="panel">
             <div class="panel-header">
-                <h2>&#x1F4CA; Měsíční spotřeba</h2>
+                <h2>&#x1F4CA; Měsíční přehled</h2>
             </div>
             <div class="chart-container">
                 <canvas id="usage-chart"></canvas>
-                <p class="chart-empty" id="chart-empty">Pro zobrazení grafu zadejte alespoň 2 měsíční odečty.</p>
+                <p class="chart-empty" id="chart-empty">Pro zobrazení grafu zadejte alespoň 1 měsíční odečet.</p>
             </div>
         </section>
 
@@ -148,18 +176,19 @@
                     <thead>
                         <tr>
                             <th>Měsíc</th>
-                            <th>Celk. elektroměr</th>
-                            <th>TČ elektroměr</th>
-                            <th>Spotřeba celkem</th>
-                            <th>Tepelné čerp.</th>
-                            <th>Ostatní</th>
-                            <th>Náklady</th>
-                            <th>Poznámka</th>
+                            <th>Odběr sítě</th>
+                            <th>Dodávka</th>
+                            <th>FVE</th>
+                            <th>Dům 1</th>
+                            <th>Dům 2</th>
+                            <th>TČ</th>
+                            <th>Nákl. D1</th>
+                            <th>Nákl. D2</th>
+                            <th>Pozn.</th>
                             <th></th>
                         </tr>
                     </thead>
-                    <tbody id="readings-body">
-                    </tbody>
+                    <tbody id="readings-body"></tbody>
                 </table>
                 <p class="table-empty" id="table-empty">Zatím žádné odečty. Přidejte první odečet výše.</p>
             </div>
