@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electricity Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>&#9889; Electricity Tracker</h1>
+        <p class="subtitle">Track your home electricity consumption and costs</p>
+    </header>
+
+    <main>
+        <!-- Summary Cards -->
+        <section class="summary-cards">
+            <div class="card">
+                <span class="card-label">This Month</span>
+                <span class="card-value" id="monthly-usage">0 kWh</span>
+            </div>
+            <div class="card">
+                <span class="card-label">Estimated Cost</span>
+                <span class="card-value" id="monthly-cost">$0.00</span>
+            </div>
+            <div class="card">
+                <span class="card-label">Daily Average</span>
+                <span class="card-value" id="daily-avg">0 kWh</span>
+            </div>
+            <div class="card">
+                <span class="card-label">Total Readings</span>
+                <span class="card-value" id="total-readings">0</span>
+            </div>
+        </section>
+
+        <!-- Add Reading Form -->
+        <section class="form-section">
+            <h2>Add Meter Reading</h2>
+            <form id="reading-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="reading-date">Date</label>
+                        <input type="date" id="reading-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reading-value">Meter Reading (kWh)</label>
+                        <input type="number" id="reading-value" placeholder="e.g. 12345" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reading-note">Note (optional)</label>
+                        <input type="text" id="reading-note" placeholder="e.g. Monthly bill reading">
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">Add Reading</button>
+            </form>
+        </section>
+
+        <!-- Settings -->
+        <section class="form-section">
+            <h2>Settings</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="rate-input">Electricity Rate ($ per kWh)</label>
+                    <input type="number" id="rate-input" step="0.001" min="0" value="0.12">
+                </div>
+                <div class="form-group">
+                    <label for="currency-input">Currency Symbol</label>
+                    <input type="text" id="currency-input" value="$" maxlength="3">
+                </div>
+                <div class="form-group form-group-btn">
+                    <button type="button" id="save-settings" class="btn-secondary">Save Settings</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Chart -->
+        <section class="chart-section">
+            <h2>Usage Over Time</h2>
+            <div class="chart-container">
+                <canvas id="usage-chart"></canvas>
+                <p class="chart-empty" id="chart-empty">Add at least 2 readings to see your usage chart.</p>
+            </div>
+        </section>
+
+        <!-- Readings Table -->
+        <section class="table-section">
+            <div class="table-header">
+                <h2>All Readings</h2>
+                <button type="button" id="export-btn" class="btn-secondary">Export CSV</button>
+            </div>
+            <div class="table-wrapper">
+                <table id="readings-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Meter (kWh)</th>
+                            <th>Usage (kWh)</th>
+                            <th>Cost</th>
+                            <th>Note</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="readings-body">
+                    </tbody>
+                </table>
+                <p class="table-empty" id="table-empty">No readings yet. Add your first meter reading above.</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Data is stored locally in your browser. No data is sent anywhere.</p>
+    </footer>
+
+    <!-- Chart.js from CDN for the usage graph -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
