@@ -233,6 +233,37 @@ main {
     color: #94a3b8;
 }
 
+.form-group select {
+    width: 100%;
+    padding: 0.6rem 0.85rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    color: #1e293b;
+    background: #f8fafc;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    cursor: pointer;
+    appearance: auto;
+}
+
+.form-group select:focus {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    background: #fff;
+}
+
+.form-group-month {
+    min-width: 140px;
+    flex: 1.2;
+}
+
+.form-group-year {
+    min-width: 100px;
+    flex: 0.7;
+}
+
 .settings-hint {
     margin-top: 0.85rem;
     font-size: 0.78rem;

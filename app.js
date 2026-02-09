@@ -26,7 +26,8 @@
   // ---- DOM Elements ----
 
   var form = document.getElementById("reading-form");
-  var monthInput = document.getElementById("reading-month");
+  var monthSelect = document.getElementById("reading-month-select");
+  var yearSelect = document.getElementById("reading-year-select");
   var totalInput = document.getElementById("reading-total");
   var heatPumpInput = document.getElementById("reading-heatpump");
   var noteInput = document.getElementById("reading-note");
@@ -49,7 +50,20 @@
   // ---- Initialization ----
 
   function init() {
-    monthInput.value = currentMonthString();
+    // Populate year dropdown (current year -5 to +1)
+    var now = new Date();
+    var currentYear = now.getFullYear();
+    var currentMonth = now.getMonth() + 1;
+    for (var y = currentYear - 5; y <= currentYear + 1; y++) {
+      var opt = document.createElement("option");
+      opt.value = y;
+      opt.textContent = y;
+      if (y === currentYear) opt.selected = true;
+      yearSelect.appendChild(opt);
+    }
+    // Pre-select current month
+    monthSelect.value = String(currentMonth).padStart(2, "0");
+
     rateInput.value = settings.rate;
 
     form.addEventListener("submit", handleAddReading);
@@ -100,12 +114,12 @@
   function handleAddReading(e) {
     e.preventDefault();
 
-    var month = monthInput.value;
+    var month = yearSelect.value + "-" + monthSelect.value;
     var totalVal = parseFloat(totalInput.value);
     var hpVal = parseFloat(heatPumpInput.value);
     var note = noteInput.value.trim();
 
-    if (!month || isNaN(totalVal) || totalVal < 0 || isNaN(hpVal) || hpVal < 0) {
+    if (!yearSelect.value || !monthSelect.value || isNaN(totalVal) || totalVal < 0 || isNaN(hpVal) || hpVal < 0) {
       showToast("Vyplňte měsíc a oba odečty elektroměru.");
       return;
     }
@@ -135,7 +149,10 @@
     totalInput.value = "";
     heatPumpInput.value = "";
     noteInput.value = "";
-    monthInput.value = currentMonthString();
+    // Reset to current month
+    var now = new Date();
+    yearSelect.value = now.getFullYear();
+    monthSelect.value = String(now.getMonth() + 1).padStart(2, "0");
     totalInput.focus();
 
     showToast("Odečet přidán.");
@@ -509,11 +526,6 @@
   }
 
   // ---- Utility Functions ----
-
-  function currentMonthString() {
-    var d = new Date();
-    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
-  }
 
   function formatMonth(monthStr) {
     var parts = monthStr.split("-");
