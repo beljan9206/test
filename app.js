@@ -23,9 +23,7 @@
   var monthSel     = document.getElementById("reading-month-select");
   var yearSel      = document.getElementById("reading-year-select");
   var inGrid       = document.getElementById("in-grid");
-  var inExport     = document.getElementById("in-export");
   var inFve        = document.getElementById("in-fve");
-  var inH1         = document.getElementById("in-h1");
   var inH2         = document.getElementById("in-h2");
   var inHp         = document.getElementById("in-hp");
   var inNote       = document.getElementById("in-note");
@@ -47,7 +45,6 @@
   var elSumH2C     = document.getElementById("sum-h2-cost");
   var elSumHp      = document.getElementById("sum-hp");
   var elSumHpPct   = document.getElementById("sum-hp-pct");
-  var elSumExport  = document.getElementById("sum-export");
 
   // ---- Init ----
   function init() {
@@ -74,8 +71,8 @@
   }
   function saveReadings() { localStorage.setItem(STORAGE_KEY, JSON.stringify(readings)); }
   function loadSettings() {
-    try { var d = JSON.parse(localStorage.getItem(SETTINGS_KEY)); return d && typeof d.rate === "number" ? d : {rate:6}; }
-    catch(e) { return {rate:6}; }
+    try { var d = JSON.parse(localStorage.getItem(SETTINGS_KEY)); return d && typeof d.rate === "number" ? d : {rate:5}; }
+    catch(e) { return {rate:5}; }
   }
   function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
 
@@ -83,13 +80,21 @@
     return readings.slice().sort(function(a,b){ return a.month.localeCompare(b.month); });
   }
 
+  // Helper: get h1 value (computed for new records, stored for old)
+  function getH1(r) {
+    // If h1 is already stored (old records or computed), use it
+    if (typeof r.h1 === "number") return r.h1;
+    return Math.max(0, r.grid + r.fve - r.h2);
+  }
+
   // cost split: each house pays proportional share of grid import cost
   function calcCosts(r) {
-    var total = r.h1 + r.h2;
+    var h1 = getH1(r);
+    var total = h1 + r.h2;
     var gridCost = r.grid * settings.rate;
     if (total <= 0) return { h1: 0, h2: 0, total: gridCost };
     return {
-      h1: (r.h1 / total) * gridCost,
+      h1: (h1 / total) * gridCost,
       h2: (r.h2 / total) * gridCost,
       total: gridCost
     };
@@ -100,29 +105,31 @@
     e.preventDefault();
     var month = yearSel.value + "-" + monthSel.value;
     var grid = parseFloat(inGrid.value);
-    var exp  = parseFloat(inExport.value);
     var fve  = parseFloat(inFve.value);
-    var h1   = parseFloat(inH1.value);
     var h2   = parseFloat(inH2.value);
     var hp   = parseFloat(inHp.value);
     var note = inNote.value.trim();
 
-    if ([grid,exp,fve,h1,h2,hp].some(function(v){ return isNaN(v) || v < 0; })) {
+    if ([grid,fve,h2,hp].some(function(v){ return isNaN(v) || v < 0; })) {
       showToast("Vyplňte všechny hodnoty (min. 0)."); return;
     }
     if (hp > h2) {
       showToast("TČ nemůže být vyšší než spotřeba Domu 2."); return;
     }
+    if (h2 > grid + fve) {
+      showToast("Spotřeba Domu 2 nemůže být vyšší než celková dostupná energie (síť + FVE)."); return;
+    }
     if (readings.some(function(r){ return r.month === month; })) {
       showToast("Odečet pro " + fmtMonth(month) + " již existuje."); return;
     }
 
-    readings.push({ month:month, grid:grid, export:exp, fve:fve, h1:h1, h2:h2, hp:hp, note:note });
+    var h1 = Math.max(0, grid + fve - h2);
+    readings.push({ month:month, grid:grid, fve:fve, h1:h1, h2:h2, hp:hp, note:note });
     saveReadings();
     render();
 
-    inGrid.value = ""; inExport.value = ""; inFve.value = "";
-    inH1.value = ""; inH2.value = ""; inHp.value = ""; inNote.value = "";
+    inGrid.value = ""; inFve.value = "";
+    inH2.value = ""; inHp.value = ""; inNote.value = "";
     var now = new Date();
     yearSel.value = now.getFullYear();
     monthSel.value = String(now.getMonth()+1).padStart(2,"0");
@@ -147,12 +154,13 @@
   function onExport() {
     var s = sorted();
     if (!s.length) { showToast("Žádná data."); return; }
-    var rows = [["Měsíc","Odběr sítě (kWh)","Dodávka sítě (kWh)","Výroba FVE (kWh)",
+    var rows = [["Měsíc","Odběr sítě (kWh)","Výroba FVE (kWh)",
       "Dům 1 (kWh)","Dům 2 (kWh)","TČ (kWh)","Náklady D1 (Kč)","Náklady D2 (Kč)","Celk. náklady (Kč)","Poznámka"]];
     for (var i = 0; i < s.length; i++) {
+      var h1 = getH1(s[i]);
       var c = calcCosts(s[i]);
-      rows.push([s[i].month, s[i].grid, s[i].export, s[i].fve,
-        s[i].h1, s[i].h2, s[i].hp,
+      rows.push([s[i].month, s[i].grid, s[i].fve,
+        h1, s[i].h2, s[i].hp,
         c.h1.toFixed(2), c.h2.toFixed(2), c.total.toFixed(2),
         '"'+(s[i].note||"")+'"']);
     }
@@ -185,14 +193,14 @@
 
     for (var i = s.length - 1; i >= 0; i--) {
       var r = s[i];
+      var h1 = getH1(r);
       var c = calcCosts(r);
       var tr = document.createElement("tr");
       tr.innerHTML =
         "<td>" + fmtMonth(r.month) + "</td>" +
         "<td class='c-blue'>" + r.grid.toFixed(1) + "</td>" +
-        "<td class='c-teal'>" + r.export.toFixed(1) + "</td>" +
         "<td class='c-amber'>" + r.fve.toFixed(1) + "</td>" +
-        "<td class='c-green'>" + r.h1.toFixed(1) + "</td>" +
+        "<td class='c-green'>" + h1.toFixed(1) + "</td>" +
         "<td class='c-orange'>" + r.h2.toFixed(1) + "</td>" +
         "<td class='c-red'>" + r.hp.toFixed(1) + "</td>" +
         "<td class='c-green'>" + fmtCZK(c.h1) + "</td>" +
@@ -215,26 +223,25 @@
       elSumH1.textContent = "0 kWh"; elSumH1C.textContent = "náklady: 0 Kč";
       elSumH2.textContent = "0 kWh"; elSumH2C.textContent = "náklady: 0 Kč";
       elSumHp.textContent = "0 kWh"; elSumHpPct.textContent = "0 % Domu 2";
-      elSumExport.textContent = "0 kWh";
       return;
     }
     var last = s[s.length - 1];
+    var h1 = getH1(last);
     var c = calcCosts(last);
-    var totalConsumption = last.h1 + last.h2;
+    var totalConsumption = h1 + last.h2;
 
     elSumGrid.textContent = last.grid.toFixed(1) + " kWh";
     elSumGridC.textContent = fmtCZK(c.total);
     elSumFve.textContent = last.fve.toFixed(1) + " kWh";
     elSumFvePct.textContent = totalConsumption > 0
       ? Math.round((last.fve / totalConsumption) * 100) + " % spotřeby" : "0 % spotřeby";
-    elSumH1.textContent = last.h1.toFixed(1) + " kWh";
+    elSumH1.textContent = h1.toFixed(1) + " kWh";
     elSumH1C.textContent = "náklady: " + fmtCZK(c.h1);
     elSumH2.textContent = last.h2.toFixed(1) + " kWh";
     elSumH2C.textContent = "náklady: " + fmtCZK(c.h2);
     elSumHp.textContent = last.hp.toFixed(1) + " kWh";
     elSumHpPct.textContent = last.h2 > 0
       ? Math.round((last.hp / last.h2) * 100) + " % Domu 2" : "0 % Domu 2";
-    elSumExport.textContent = last.export.toFixed(1) + " kWh";
   }
 
   function renderChart(s) {
@@ -248,8 +255,9 @@
 
     var labels=[], dH1=[], dHp=[], dH2other=[], dFve=[], dGrid=[];
     for (var i = 0; i < s.length; i++) {
+      var h1 = getH1(s[i]);
       labels.push(fmtMonth(s[i].month));
-      dH1.push(s[i].h1);
+      dH1.push(h1);
       dHp.push(s[i].hp);
       dH2other.push(Math.max(0, s[i].h2 - s[i].hp));
       dFve.push(s[i].fve);

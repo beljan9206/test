@@ -53,12 +53,6 @@
                 <span class="card-value" id="sum-hp">0 kWh</span>
                 <span class="card-sub" id="sum-hp-pct">0 % Domu 2</span>
             </div>
-            <div class="card card-accent-teal">
-                <div class="card-icon">&#x1F4B6;</div>
-                <span class="card-label">Přetoky do sítě</span>
-                <span class="card-value" id="sum-export">0 kWh</span>
-                <span class="card-sub">dodávka zpět</span>
-            </div>
         </section>
 
         <!-- Add Reading Form -->
@@ -99,10 +93,6 @@
                             <input type="number" id="in-grid" placeholder="0" step="0.1" min="0" required>
                         </div>
                         <div class="form-group">
-                            <label for="in-export">Dodávka do sítě (kWh)</label>
-                            <input type="number" id="in-export" placeholder="0" step="0.1" min="0" required>
-                        </div>
-                        <div class="form-group">
                             <label for="in-fve">Výroba FVE (kWh)</label>
                             <input type="number" id="in-fve" placeholder="0" step="0.1" min="0" required>
                         </div>
@@ -110,14 +100,10 @@
                 </fieldset>
 
                 <fieldset class="fieldset">
-                    <legend>Spotřeba domů</legend>
+                    <legend>Spotřeba Domu 2</legend>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="in-h1">Dům 1 (kWh)</label>
-                            <input type="number" id="in-h1" placeholder="0" step="0.1" min="0" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="in-h2">Dům 2 (kWh)</label>
+                            <label for="in-h2">Dům 2 celkem (kWh)</label>
                             <input type="number" id="in-h2" placeholder="0" step="0.1" min="0" required>
                         </div>
                         <div class="form-group">
@@ -125,6 +111,7 @@
                             <input type="number" id="in-hp" placeholder="0" step="0.1" min="0" required>
                         </div>
                     </div>
+                    <p class="fieldset-hint">Dům 1 = (Odběr ze sítě + Výroba FVE) &minus; Dům 2</p>
                 </fieldset>
 
                 <div class="form-row form-row-second">
@@ -145,7 +132,7 @@
             <div class="form-row">
                 <div class="form-group">
                     <label for="rate-input">Cena elektřiny (Kč za kWh)</label>
-                    <input type="number" id="rate-input" step="0.01" min="0" value="6.00">
+                    <input type="number" id="rate-input" step="0.01" min="0" value="5.00">
                 </div>
                 <div class="form-group form-group-btn">
                     <button type="button" id="save-settings" class="btn-secondary">Uložit</button>
@@ -177,7 +164,6 @@
                         <tr>
                             <th>Měsíc</th>
                             <th>Odběr sítě</th>
-                            <th>Dodávka</th>
                             <th>FVE</th>
                             <th>Dům 1</th>
                             <th>Dům 2</th>
