@@ -399,8 +399,8 @@
             backgroundColor: "rgba(22,163,74,0.65)",
             borderColor: "rgba(22,163,74,1)",
             borderWidth: 1,
-            borderRadius: {topLeft:0,topRight:0,bottomLeft:6,bottomRight:6},
-            stack: "consumption",
+            borderRadius: 6,
+            stack: "house1",
             yAxisID: "y", order: 3
           },
           {
@@ -409,7 +409,8 @@
             backgroundColor: "rgba(220,38,38,0.7)",
             borderColor: "rgba(220,38,38,1)",
             borderWidth: 1,
-            stack: "consumption",
+            borderRadius: {topLeft:0,topRight:0,bottomLeft:6,bottomRight:6},
+            stack: "house2",
             yAxisID: "y", order: 3
           },
           {
@@ -419,7 +420,7 @@
             borderColor: "rgba(234,88,12,1)",
             borderWidth: 1,
             borderRadius: {topLeft:6,topRight:6,bottomLeft:0,bottomRight:0},
-            stack: "consumption",
+            stack: "house2",
             yAxisID: "y", order: 3
           },
           {
@@ -472,11 +473,12 @@
             padding:12, cornerRadius:8,
             callbacks: {
               afterBody: function(items) {
-                var tot = 0;
+                var h1 = 0, h2 = 0;
                 items.forEach(function(it) {
-                  if (it.dataset.stack === "consumption") tot += it.parsed.y;
+                  if (it.dataset.stack === "house1") h1 += it.parsed.y;
+                  if (it.dataset.stack === "house2") h2 += it.parsed.y;
                 });
-                return "Celk. spotřeba: " + tot.toFixed(1) + " kWh";
+                return "Celk. spotřeba: " + (h1 + h2).toFixed(1) + " kWh";
               }
             }
           }
