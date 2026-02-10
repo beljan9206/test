@@ -124,6 +124,27 @@
             </form>
         </section>
 
+        <!-- Bulk Import -->
+        <section class="panel">
+            <div class="panel-header">
+                <h2>&#x1F4E5; Hromadný import</h2>
+                <button type="button" id="import-toggle" class="btn-secondary">Zobrazit</button>
+            </div>
+            <div id="import-body" class="import-body" style="display:none;">
+                <p class="import-info">Vložte data z Excelu nebo textového souboru. Každý řádek = jeden měsíc. Sloupce oddělujte středníkem <code>;</code> nebo tabulátorem.</p>
+                <div class="import-format">
+                    <strong>Formát:</strong> Měsíc (RRRR-MM) ; Odběr ze sítě ; Výroba FVE ; Dům 2 ; TČ<br>
+                    <span class="import-example">Příklad: 2025-01;500;200;300;150</span>
+                </div>
+                <textarea id="import-textarea" class="import-textarea" rows="8" placeholder="2025-01;500;200;300;150&#10;2025-02;480;180;280;140&#10;2025-03;420;350;250;120"></textarea>
+                <div class="import-options">
+                    <label class="import-checkbox"><input type="checkbox" id="import-overwrite"> Přepsat existující odečty</label>
+                </div>
+                <button type="button" id="import-btn" class="btn-primary">Importovat data</button>
+                <div id="import-result" class="import-result" style="display:none;"></div>
+            </div>
+        </section>
+
         <!-- Settings -->
         <section class="panel">
             <div class="panel-header">

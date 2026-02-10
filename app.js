@@ -30,6 +30,12 @@
   var rateInput    = document.getElementById("rate-input");
   var saveBtn      = document.getElementById("save-settings");
   var exportBtn    = document.getElementById("export-btn");
+  var importToggle = document.getElementById("import-toggle");
+  var importBody   = document.getElementById("import-body");
+  var importArea   = document.getElementById("import-textarea");
+  var importBtn    = document.getElementById("import-btn");
+  var importOver   = document.getElementById("import-overwrite");
+  var importResult = document.getElementById("import-result");
   var tbody        = document.getElementById("readings-body");
   var tableEmpty   = document.getElementById("table-empty");
   var chartEmpty   = document.getElementById("chart-empty");
@@ -61,6 +67,8 @@
     form.addEventListener("submit", onAdd);
     saveBtn.addEventListener("click", onSaveSettings);
     exportBtn.addEventListener("click", onExport);
+    importToggle.addEventListener("click", onToggleImport);
+    importBtn.addEventListener("click", onImport);
     render();
   }
 
@@ -149,6 +157,120 @@
     if (isNaN(r) || r < 0) { showToast("Zadejte platnou cenu."); return; }
     settings.rate = r; saveSettings(); render();
     showToast("Nastavení uloženo.");
+  }
+
+  function onToggleImport() {
+    var open = importBody.style.display !== "none";
+    importBody.style.display = open ? "none" : "block";
+    importToggle.textContent = open ? "Zobrazit" : "Skrýt";
+  }
+
+  function onImport() {
+    var raw = importArea.value.trim();
+    if (!raw) { showImportResult("err", "Vložte data pro import."); return; }
+    var overwrite = importOver.checked;
+
+    var lines = raw.split(/\r?\n/);
+    var added = 0, skipped = 0, overwritten = 0, errors = [];
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (!line) continue;
+
+      // detect delimiter: tab or semicolon or comma
+      var sep = line.indexOf("\t") >= 0 ? "\t" : line.indexOf(";") >= 0 ? ";" : ",";
+      var parts = line.split(sep);
+
+      // skip header row
+      if (i === 0 && parts[0] && /[a-zA-ZěščřžýáíéůúĚŠČŘŽÝÁÍÉŮÚ]/.test(parts[0]) && isNaN(parseFloat(parts[1]))) continue;
+
+      if (parts.length < 5) {
+        errors.push("Řádek " + (i+1) + ": málo sloupců (potřeba 5: měsíc, síť, FVE, dům 2, TČ).");
+        continue;
+      }
+
+      var monthRaw = parts[0].trim();
+      // validate month format YYYY-MM
+      if (!/^\d{4}-\d{2}$/.test(monthRaw)) {
+        errors.push("Řádek " + (i+1) + ": neplatný formát měsíce '" + monthRaw + "' (potřeba RRRR-MM).");
+        continue;
+      }
+      var mm = parseInt(monthRaw.split("-")[1], 10);
+      if (mm < 1 || mm > 12) {
+        errors.push("Řádek " + (i+1) + ": neplatný měsíc '" + monthRaw + "'.");
+        continue;
+      }
+
+      var grid = parseNum(parts[1]);
+      var fve  = parseNum(parts[2]);
+      var h2   = parseNum(parts[3]);
+      var hp   = parseNum(parts[4]);
+
+      if ([grid,fve,h2,hp].some(function(v){ return isNaN(v) || v < 0; })) {
+        errors.push("Řádek " + (i+1) + ": neplatné číselné hodnoty.");
+        continue;
+      }
+      if (hp > h2) {
+        errors.push("Řádek " + (i+1) + ": TČ (" + hp + ") větší než Dům 2 (" + h2 + ").");
+        continue;
+      }
+
+      var existing = -1;
+      for (var j = 0; j < readings.length; j++) {
+        if (readings[j].month === monthRaw) { existing = j; break; }
+      }
+
+      if (existing >= 0 && !overwrite) {
+        skipped++;
+        continue;
+      }
+
+      var h1 = Math.max(0, grid + fve - h2);
+      var rec = { month:monthRaw, grid:grid, fve:fve, h1:h1, h2:h2, hp:hp, note:"" };
+
+      if (existing >= 0) {
+        readings[existing] = rec;
+        overwritten++;
+      } else {
+        readings.push(rec);
+        added++;
+      }
+    }
+
+    saveReadings();
+    render();
+
+    // build result message
+    var msgs = [];
+    if (added > 0) msgs.push("Přidáno: " + added);
+    if (overwritten > 0) msgs.push("Přepsáno: " + overwritten);
+    if (skipped > 0) msgs.push("Přeskočeno (duplicity): " + skipped);
+    if (errors.length > 0) msgs.push("Chyby: " + errors.length);
+
+    var cls = errors.length > 0 ? (added + overwritten > 0 ? "warn" : "err") : "ok";
+    var msg = msgs.join(" &bull; ");
+    if (errors.length > 0) {
+      msg += "<br><br><strong>Detail chyb:</strong><br>" + errors.slice(0, 10).join("<br>");
+      if (errors.length > 10) msg += "<br>… a dalších " + (errors.length - 10);
+    }
+    showImportResult(cls, msg);
+
+    if (added + overwritten > 0) {
+      importArea.value = "";
+      showToast("Importováno " + (added + overwritten) + " odečtů.");
+    }
+  }
+
+  // parse number, accepting both . and , as decimal separator
+  function parseNum(s) {
+    if (!s) return NaN;
+    return parseFloat(s.trim().replace(",", "."));
+  }
+
+  function showImportResult(cls, html) {
+    importResult.style.display = "block";
+    importResult.className = "import-result import-result-" + cls;
+    importResult.innerHTML = html;
   }
 
   function onExport() {

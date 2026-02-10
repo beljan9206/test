@@ -300,6 +300,115 @@ main {
     line-height: 1.5;
 }
 
+/* ---- Import ---- */
+.import-body {
+    margin-top: -0.5rem;
+}
+
+.import-info {
+    font-size: 0.82rem;
+    color: #475569;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+}
+
+.import-info code {
+    background: #f1f5f9;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: var(--blue);
+}
+
+.import-format {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.78rem;
+    color: #475569;
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+}
+
+.import-example {
+    color: #94a3b8;
+    font-family: monospace;
+    font-size: 0.76rem;
+}
+
+.import-textarea {
+    width: 100%;
+    padding: 0.75rem 0.85rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-family: 'Courier New', Courier, monospace;
+    color: #1e293b;
+    background: #f8fafc;
+    resize: vertical;
+    line-height: 1.6;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.import-textarea:focus {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    background: #fff;
+}
+
+.import-textarea::placeholder {
+    color: #cbd5e1;
+}
+
+.import-options {
+    margin-top: 0.6rem;
+    margin-bottom: 0.25rem;
+}
+
+.import-checkbox {
+    font-size: 0.82rem;
+    color: #475569;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.import-checkbox input {
+    accent-color: var(--blue);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+}
+
+.import-result {
+    margin-top: 0.85rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    line-height: 1.6;
+}
+
+.import-result-ok {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+}
+
+.import-result-warn {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+}
+
+.import-result-err {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+}
+
 /* ---- Buttons ---- */
 .btn-primary {
     display: inline-block;
